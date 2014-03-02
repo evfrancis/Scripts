@@ -10,6 +10,8 @@ from os import listdir
 from os import remove
 from os.path import isfile, join
 
+myPath = "./Image_Processing/";
+
 def read_image(path):
     return Image.open(path)
 
@@ -31,51 +33,31 @@ def quantize(x,parts):
     return round(x*parts)/parts
 
 def transform(im, width, height):
+    s_total = 0
     # Compute average color value
     for x in range(0,width):
         for y in range(0,height):
-            r,g,b = p_img.getpixel((x,y))
+            r,g,b = im.getpixel((x,y))
             h,s,v = colorsys.rgb_to_hsv(r/255.0,g/255.0,b/255.0)
-            v_total += v
+            s_total += s
 
-    v_avg = float(v_total) / (width * height)
+    s_avg = float(s_total) / (width * height)
 
     for x in range(0,width):
         for y in range(0,height):
-            r,g,b = p_img.getpixel((x,y))
+            r,g,b = im.getpixel((x,y))
             h,s,v = colorsys.rgb_to_hsv(r/255.0,g/255.0,b/255.0)
-            r,g,b = colorsys.hsv_to_rgb(h,0,skew(v,5,v_avg))
-            p_img.putpixel( (x,y), (int(r*255.0),int(g*255.0),int(b*255.0)))
+            r,g,b = colorsys.hsv_to_rgb(h,skew(s,4,s_avg),v)
+            im.putpixel( (x,y), (int(r*255.0),int(g*255.0),int(b*255.0)))
 
-    p_img = p_img.filter(ImageFilter.CONTOUR)
-    return p_img
+    im = im.filter(ImageFilter.CONTOUR)
 
 
 def process_image(im):
     width, height = im.size
     p_img = im
 
-    # Compute average color value
-    for l in range(1,10):
-        level = l/10.0
-        temp_img = p_img
-        for x in range(0,width):
-            for y in range(0,height):
-                r,g,b = p_img.getpixel((x,y))
-                h,s,v = colorsys.rgb_to_hsv(r/255.0,g/255.0,b/255.0)
-                temp_img.putpixel((x,y),  (255,255,255))
-                if (v > level):
-                    temp_img.putpixel((x,y),  (r,g,b))
-        write_image("/home/ev/Desktop/code/python/graphics_processing/Image_Processing/output" + str(l) + ".jpg",temp_img)
-
-    v_total = 0;
-
-
-    return p_img
-
-PIL_Version = Image.VERSION
-
-myPath = "./Image_Processing/";
+    transform(im, width, height)
 
 # Remove old outputs
 for f in listdir(myPath):
@@ -88,5 +70,5 @@ image_array = sorted([f for f in listdir(myPath) ])
 for img_file in image_array:
     image = read_image(join(myPath,img_file))
     print "Processing: %s" % img_file
-    p_image = process_image(image)
-    write_image(join(myPath,img_file.replace(".","_output.")),p_image)
+    process_image(image)
+    write_image(join(myPath,img_file.replace(".","_output.")),image)
